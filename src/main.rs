@@ -1,5 +1,8 @@
 use rustbox::{Color, Event, InitOptions, Key, RustBox};
 use std::fmt::format;
+use std::os::unix::raw::time_t;
+use std::thread;
+use std::time::Duration;
 
 use glam::IVec2;
 use rand::seq::SliceRandom;
@@ -21,11 +24,11 @@ struct Parameters {
 impl Default for Parameters {
     fn default() -> Self {
         Self {
-            n_balls: 1,
+            n_balls: 10,
             speed: 1,
             rim: 0,
             contained: 0,
-            radius: 1.0,
+            radius: 100.0,
             color: Color::Default,
         }
     }
@@ -34,8 +37,8 @@ fn main() {
     let parameters = Parameters::default();
     let rustbox = RustBox::init(InitOptions::default()).expect("Rust box failed to init!!");
 
-    let max_x = rustbox.height() as i32;
-    let max_y = rustbox.width() as i32 * 2;
+    let max_x = rustbox.width() as i32;
+    let max_y = rustbox.height() as i32 * 2;
     let radius = ((parameters.radius * parameters.radius) + (max_x * max_y) as f32) / 15000 as f32;
     let margin = if parameters.contained > 0 {
         (parameters.radius * 10.0).round() as i32
@@ -74,19 +77,19 @@ fn main() {
                 balls[i].dir.y *= -1;
             }
             let dir = balls[i].dir;
-            balls[i].pos += IVec2::new(1, 1);
-            rustbox.print(
-                balls[i].pos.x as usize,
-                balls[i].pos.y as usize,
-                rustbox::RB_BOLD,
-                Color::Blue,
-                Color::Default,
-                &*format!("{:?}", balls[i].pos),
-            );
+            balls[i].pos += IVec2::new(dir.x, dir.y);
+            // rustbox.print(
+            //     balls[i].pos.x as usize,
+            //     balls[i].pos.y as usize,
+            //     rustbox::RB_BOLD,
+            //     Color::Blue,
+            //     Color::Default,
+            //     &*format!("max_x {max_x} max_y {max_y}"),
+            // );
         }
         let sum_const = 0.0225;
-        let sum_const2 = sum_const * (1.0 + (0.25 * parameters.rim as f32));
-        let color = parameters.color;
+        // let sum_const2 = sum_const * (1.0 + (0.25 * parameters.rim as f32));
+        // let color = parameters.color;
         for i in 0..max_x {
             for j in 0..max_y / 2 {
                 let mut sum = [0.0, 0.0];
@@ -110,7 +113,9 @@ fn main() {
                             rustbox::RB_BOLD,
                             Color::White,
                             Color::Black,
-                            &*format!("{:?}", sum),
+                            "█",
+                            // &*format!("{:?}", sum),
+                            // &*format!("X={x} Y={y}"),
                         );
                     } else {
                         rustbox.print(
@@ -119,7 +124,8 @@ fn main() {
                             rustbox::RB_BOLD,
                             Color::White,
                             Color::Black,
-                            &*format!("X={x} Y={y}"),
+                            "▀",
+                            //&*format!("X={x} Y={y}"),
                         );
                     }
                 } else if sum[1] > sum_const {
@@ -129,15 +135,18 @@ fn main() {
                         rustbox::RB_BOLD,
                         Color::White,
                         Color::Black,
-                        &*format!("X={x} Y={y}"),
+                        "▄",
+                        // &*format!("X={x} Y={y}"),
                     );
                 }
             }
         }
         rustbox.present();
         rustbox.clear();
-
-        match rustbox.poll_event(false) {
+        let dur = Duration::from_millis(20);
+        thread::sleep(dur);
+        let duration = Duration::from_millis(10);
+        match rustbox.peek_event(duration, false) {
             Ok(evt) => match evt {
                 Event::KeyEvent(key) => match key {
                     Key::Esc => break,
@@ -150,5 +159,19 @@ fn main() {
             },
             Err(err) => panic!("Deu ruim no key event {err}"),
         };
+
+        // match rustbox.poll_event(false) {
+        //     Ok(evt) => match evt {
+        //         Event::KeyEvent(key) => match key {
+        //             Key::Esc => break,
+        //             Key::Char('q') => break,
+        //             Key::Ctrl('q') => break,
+        //             Key::Ctrl('c') => break,
+        //             _ => (),
+        //         },
+        //         _ => {}
+        //     },
+        //     Err(err) => panic!("Deu ruim no key event {err}"),
+        // };
     }
 }
